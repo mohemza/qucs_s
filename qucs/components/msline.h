@@ -29,6 +29,8 @@ public:
   static Element* info(QString&, char* &, bool getNewOne=false);
 protected:
   QString spice_netlist(spicecompat::SpiceDialect dialect);
+private:
+  void getHammerstadValues(const QString& top, const QString& bottom, double& h1, double& h2, double& t);
 };
 
 #endif

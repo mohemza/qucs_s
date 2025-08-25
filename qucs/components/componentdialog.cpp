@@ -59,6 +59,69 @@ QStringList getOptionsFromString(const QString& description)
 }
 
 // -------------------------------------------------------------------------
+//
+void ComponentDialog::slotTopMetalChanged()
+{
+    if (!component->Name.startsWith("MS")) return;
+
+    QComboBox* topMetalCombo = nullptr;
+    QComboBox* bottomMetalCombo = nullptr;
+
+    for(int row = 0; row < propertyTable->rowCount(); ++row) {
+        QString propName = propertyTable->item(row, 0)->text();
+        if(propName == "TopMetal") {
+            topMetalCombo = qobject_cast<QComboBox*>(propertyTable->cellWidget(row, 1));
+        } else if(propName == "BottomMetal") {
+            bottomMetalCombo = qobject_cast<QComboBox*>(propertyTable->cellWidget(row, 1));
+        }
+    }
+
+    if(topMetalCombo && bottomMetalCombo) {
+        QString currentTopMetal = topMetalCombo->currentText();
+        int topIndex = metalLayers.indexOf(currentTopMetal);
+
+        QString currentBottomMetal = bottomMetalCombo->currentText();
+        bottomMetalCombo->clear();
+
+        QStringList bottomOptions;
+        for(int i = 0; i < topIndex; ++i) {
+            bottomOptions.append(metalLayers.at(i));
+        }
+        bottomMetalCombo->addItems(bottomOptions);
+
+        if(bottomOptions.contains(currentBottomMetal)) {
+            bottomMetalCombo->setCurrentText(currentBottomMetal);
+        }
+    }
+}
+
+// -------------------------------------------------------------------------
+// Shows and hides component properties based on the value of other properties.
+void ComponentDialog::slotPropertyChanged()
+{
+    if (!component->Name.startsWith("MS")) return;
+    // Find the "Model" property combobox
+    QComboBox* modelCombo = nullptr;
+    for(int row = 0; row < propertyTable->rowCount(); ++row) {
+        if(propertyTable->item(row, 0)->text() == "Model") {
+            modelCombo = qobject_cast<QComboBox*>(propertyTable->cellWidget(row, 1));
+            break;
+        }
+    }
+
+    if(modelCombo) {
+        bool show = (modelCombo->currentText() == "Embedded Hammerstad");
+
+        for(int row = 0; row < propertyTable->rowCount(); ++row) {
+            QString propName = propertyTable->item(row, 0)->text();
+            if(propName == "TopMetal" || propName == "BottomMetal") {
+                propertyTable->setRowHidden(row, !show);
+            }
+        }
+    }
+}
+
+// -------------------------------------------------------------------------
 // Helper to convert a number to a string with appropriate SI code.
 double str2num(const QString& string)
 {
@@ -323,6 +386,7 @@ ComponentDialog::ComponentDialog(Component* schematicComponent, Schematic* schem
 {
   component = schematicComponent;
   document = schematic;
+  metalLayers << "Metal1" << "Metal2" << "Metal3" << "Metal4" << "Metal5" << "TopMetal1" << "TopMetal2";
 
   // TODO: Hack; This list holds the devices with valid "Symbol" property
   excludeList<<"Diode"<<"MCROSS"<<"MTEE"
@@ -667,6 +731,12 @@ void ComponentDialog::updatePropertyTable(const Component* updateComponent)
         optionsCombo->setCurrentText(property->Value);
         propertyTable->setCellWidget(row, 1, optionsCombo);
         propertyTable->setItem(row, 1, new QTableWidgetItem(ComboBoxCell));
+        if(property->Name == "Model" && component->Name.startsWith("MS")) {
+            connect(optionsCombo, SIGNAL(currentTextChanged(const QString&)), this, SLOT(slotPropertyChanged()));
+        }
+        if(property->Name == "TopMetal" && component->Name.startsWith("MS")) {
+            connect(optionsCombo, SIGNAL(currentTextChanged(const QString&)), this, SLOT(slotTopMetalChanged()));
+        }
       }
 
       // Create a compound widget that selects a file.
@@ -703,6 +773,9 @@ void ComponentDialog::updatePropertyTable(const Component* updateComponent)
 
       row++;
     }
+
+    slotPropertyChanged();
+    slotTopMetalChanged();
 }
 
 // -------------------------------------------------------------------------

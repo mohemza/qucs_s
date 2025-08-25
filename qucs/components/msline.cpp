@@ -16,7 +16,8 @@
  ***************************************************************************/
 
 #include "node.h"
-
+#include <QMap>
+#include <QPair>
 #include "msline.h"
 #include "extsimkernels/spicecompat.h"
 
@@ -53,10 +54,14 @@ MSline::MSline()
 	QObject::tr("length of the line")));
   Props.append(new Property("Model", "Hammerstad", false,
 	QObject::tr("quasi-static microstrip model")+
-		    " [Hammerstad, Wheeler, Schneider]"));
+		    " [Hammerstad, Wheeler, Schneider, Embedded Hammerstad]"));
   Props.append(new Property("DispModel", "Kirschning", false,
 	QObject::tr("microstrip dispersion model")+" [Kirschning, Kobayashi, "
 	"Yamashita, Hammerstad, Getsinger, Schneider, Pramanick]"));
+  Props.append(new Property("TopMetal", "TopMetal2", true,
+    QObject::tr("Top metal layer") + " [TopMetal2,TopMetal1,Metal5,Metal4,Metal3,Metal2]"));
+  Props.append(new Property("BottomMetal", "TopMetal1", true,
+    QObject::tr("Bottom metal layer") + " [TopMetal1,Metal5,Metal4,Metal3,Metal2,Metal1]"));
   Props.append(new Property("Temp", "26.85", false,
 	QObject::tr("simulation temperature in degree Celsius")));
   Props.append(new Property("TranModel", "DC", false,
@@ -97,10 +102,64 @@ QString MSline::spice_netlist(spicecompat::SpiceDialect dialect)
   int Disp = spicecompat::strToDispModel(getProperty("DispModel")->Value);
   int Tran = spicecompat::strToTranModel(getProperty("TranModel")->Value);
 
+  QString hammerstadParams = "";
+  if (getProperty("Model")->Value == "Embedded Hammerstad") {
+      QString topMetal = getProperty("TopMetal")->Value;
+      QString bottomMetal = getProperty("BottomMetal")->Value;
+
+      QString top = topMetal.replace("TopMetal", "TM").replace("Metal", "M");
+      QString bottom = bottomMetal.replace("TopMetal", "TM").replace("Metal", "M");
+
+      double h1, h2, t;
+      getHammerstadValues(top, bottom, h1, h2, t);
+      hammerstadParams = QString(" h1=%1e-9 h2=%2e-9 t=%3e-9")
+          .arg(h1).arg(h2).arg(t);
+  }
+
   s = QString("A_%1 %hd(%2 0) %hd(%3 0) %vd(%2 0) %vd(%3 0) MODEL_%1\n")
           .arg(Name).arg(p1).arg(p2);
-  s += QString(".MODEL MODEL_%1 MLIN(l=%2 w=%3 model=%4 disp=%5 tranmodel=%6 %7)\n")
-          .arg(Name).arg(L).arg(W).arg(Mod).arg(Disp).arg(Tran).arg(subline);
+  s += QString(".MODEL MODEL_%1 MLIN(l=%2 w=%3 model=%4 disp=%5 tranmodel=%6 %7%8)\n")
+          .arg(Name).arg(L).arg(W).arg(Mod).arg(Disp).arg(Tran).arg(subline).arg(hammerstadParams);
 
   return s;
+}
+
+void MSline::getHammerstadValues(const QString& top, const QString& bottom, double& h1, double& h2, double& t)
+{
+    static QMap<QPair<QString, QString>, QPair<double, double>> values;
+    if (values.isEmpty()) {
+        values.insert(qMakePair(QString("M2"), QString("M1")), qMakePair(420.0, 14150.0));
+        values.insert(qMakePair(QString("M3"), QString("M1")), qMakePair(1450.0, 14150.0));
+        values.insert(qMakePair(QString("M4"), QString("M1")), qMakePair(2480.0, 14150.0));
+        values.insert(qMakePair(QString("M5"), QString("M1")), qMakePair(3510.0, 14150.0));
+        values.insert(qMakePair(QString("TM1"), QString("M1")), qMakePair(4850.0, 14150.0));
+        values.insert(qMakePair(QString("TM2"), QString("M1")), qMakePair(9650.0, 14150.0));
+        values.insert(qMakePair(QString("M3"), QString("M2")), qMakePair(540.0, 13240.0));
+        values.insert(qMakePair(QString("M4"), QString("M2")), qMakePair(1570.0, 13240.0));
+        values.insert(qMakePair(QString("M5"), QString("M2")), qMakePair(2600.0, 13240.0));
+        values.insert(qMakePair(QString("TM1"), QString("M2")), qMakePair(3940.0, 13240.0));
+        values.insert(qMakePair(QString("TM2"), QString("M2")), qMakePair(8740.0, 13240.0));
+        values.insert(qMakePair(QString("M4"), QString("M3")), qMakePair(540.0, 12210.0));
+        values.insert(qMakePair(QString("M5"), QString("M3")), qMakePair(1570.0, 12210.0));
+        values.insert(qMakePair(QString("TM1"), QString("M3")), qMakePair(2910.0, 12210.0));
+        values.insert(qMakePair(QString("TM2"), QString("M3")), qMakePair(7710.0, 12210.0));
+        values.insert(qMakePair(QString("M5"), QString("M4")), qMakePair(540.0, 11180.0));
+        values.insert(qMakePair(QString("TM1"), QString("M4")), qMakePair(1880.0, 11180.0));
+        values.insert(qMakePair(QString("TM2"), QString("M4")), qMakePair(6680.0, 11180.0));
+        values.insert(qMakePair(QString("TM1"), QString("M5")), qMakePair(850.0, 10150.0));
+        values.insert(qMakePair(QString("TM2"), QString("M5")), qMakePair(5650.0, 10150.0));
+        values.insert(qMakePair(QString("TM2"), QString("TM1")), qMakePair(2800.0, 7300.0));
+    }
+
+    QPair<double, double> h_vals = values.value(qMakePair(top, bottom));
+    h1 = h_vals.first;
+    h2 = h_vals.second;
+
+    if (top == "TM2") {
+        t = 3000.0;
+    } else if (top == "TM1") {
+        t = 2000.0;
+    } else {
+        t = 490.0;
+    }
 }

@@ -57,6 +57,8 @@ protected:
 private slots:
   void slotOKButton();
   void slotApplyButton();
+  void slotPropertyChanged();
+  void slotTopMetalChanged();
 
   void slotBrowseFile(QLineEdit* lineEdit);
   // void slotEditFile();
@@ -64,6 +66,7 @@ private slots:
   void slotFillFromSpice();
 
 private:
+  QStringList metalLayers;
   QIntValidator* intVal;
   QValidator* compNameVal;
   QValidator* nameVal;
