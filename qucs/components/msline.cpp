@@ -114,7 +114,7 @@ QString MSline::spice_netlist(spicecompat::SpiceDialect dialect)
 
       double h1, h2, t_embed;
       getHammerstadValues(top, bottom, h1, h2, t_embed);
-      hammerstadParams = QString(" h1=%1e-9 h2=%2e-9 t_embed=%3e-9")
+      hammerstadParams = QString("type=1 h1=%1e-9 h2=%2e-9 t_embed=%3e-9")
           .arg(h1).arg(h2).arg(t_embed);
   }
 
