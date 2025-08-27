@@ -54,7 +54,9 @@ MSline::MSline()
 	QObject::tr("length of the line")));
   Props.append(new Property("Model", "Hammerstad", false,
 	QObject::tr("quasi-static microstrip model")+
-		    " [Hammerstad, Wheeler, Schneider, Embedded Hammerstad]"));
+		    " [Hammerstad, Wheeler, Schneider]"));
+  Props.append(new Property("Type", "Standard", false,
+    QObject::tr("Microstrip line type") + " [Standard,Embedded]"));
   Props.append(new Property("DispModel", "Kirschning", false,
 	QObject::tr("microstrip dispersion model")+" [Kirschning, Kobayashi, "
 	"Yamashita, Hammerstad, Getsinger, Schneider, Pramanick]"));
@@ -103,17 +105,17 @@ QString MSline::spice_netlist(spicecompat::SpiceDialect dialect)
   int Tran = spicecompat::strToTranModel(getProperty("TranModel")->Value);
 
   QString hammerstadParams = "";
-  if (getProperty("Model")->Value == "Embedded Hammerstad") {
+  if (getProperty("Type")->Value == "Embedded") {
       QString topMetal = getProperty("TopMetal")->Value;
       QString bottomMetal = getProperty("BottomMetal")->Value;
 
       QString top = topMetal.replace("TopMetal", "TM").replace("Metal", "M");
       QString bottom = bottomMetal.replace("TopMetal", "TM").replace("Metal", "M");
 
-      double h1, h2, t;
-      getHammerstadValues(top, bottom, h1, h2, t);
-      hammerstadParams = QString(" h1=%1e-9 h2=%2e-9 t=%3e-9")
-          .arg(h1).arg(h2).arg(t);
+      double h1, h2, t_embed;
+      getHammerstadValues(top, bottom, h1, h2, t_embed);
+      hammerstadParams = QString(" h1=%1e-9 h2=%2e-9 t_embed=%3e-9")
+          .arg(h1).arg(h2).arg(t_embed);
   }
 
   s = QString("A_%1 %hd(%2 0) %hd(%3 0) %vd(%2 0) %vd(%3 0) MODEL_%1\n")
@@ -124,7 +126,7 @@ QString MSline::spice_netlist(spicecompat::SpiceDialect dialect)
   return s;
 }
 
-void MSline::getHammerstadValues(const QString& top, const QString& bottom, double& h1, double& h2, double& t)
+void MSline::getHammerstadValues(const QString& top, const QString& bottom, double& h1, double& h2, double& t_embed)
 {
     static QMap<QPair<QString, QString>, QPair<double, double>> values;
     if (values.isEmpty()) {
@@ -156,10 +158,10 @@ void MSline::getHammerstadValues(const QString& top, const QString& bottom, doub
     h2 = h_vals.second;
 
     if (top == "TM2") {
-        t = 3000.0;
+        t_embed = 3000.0;
     } else if (top == "TM1") {
-        t = 2000.0;
+        t_embed = 2000.0;
     } else {
-        t = 490.0;
+        t_embed = 490.0;
     }
 }

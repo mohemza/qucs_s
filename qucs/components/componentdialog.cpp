@@ -100,17 +100,17 @@ void ComponentDialog::slotTopMetalChanged()
 void ComponentDialog::slotPropertyChanged()
 {
     if (!component->Name.startsWith("MS")) return;
-    // Find the "Model" property combobox
-    QComboBox* modelCombo = nullptr;
+    // Find the "Type" property combobox
+    QComboBox* typeCombo = nullptr;
     for(int row = 0; row < propertyTable->rowCount(); ++row) {
-        if(propertyTable->item(row, 0)->text() == "Model") {
-            modelCombo = qobject_cast<QComboBox*>(propertyTable->cellWidget(row, 1));
+        if(propertyTable->item(row, 0)->text() == "Type") {
+            typeCombo = qobject_cast<QComboBox*>(propertyTable->cellWidget(row, 1));
             break;
         }
     }
 
-    if(modelCombo) {
-        bool show = (modelCombo->currentText() == "Embedded Hammerstad");
+    if(typeCombo) {
+        bool show = (typeCombo->currentText() == "Embedded");
 
         for(int row = 0; row < propertyTable->rowCount(); ++row) {
             QString propName = propertyTable->item(row, 0)->text();
@@ -731,7 +731,7 @@ void ComponentDialog::updatePropertyTable(const Component* updateComponent)
         optionsCombo->setCurrentText(property->Value);
         propertyTable->setCellWidget(row, 1, optionsCombo);
         propertyTable->setItem(row, 1, new QTableWidgetItem(ComboBoxCell));
-        if(property->Name == "Model" && component->Name.startsWith("MS")) {
+        if(property->Name == "Type" && component->Name.startsWith("MS")) {
             connect(optionsCombo, SIGNAL(currentTextChanged(const QString&)), this, SLOT(slotPropertyChanged()));
         }
         if(property->Name == "TopMetal" && component->Name.startsWith("MS")) {

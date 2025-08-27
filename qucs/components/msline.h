@@ -30,7 +30,7 @@ public:
 protected:
   QString spice_netlist(spicecompat::SpiceDialect dialect);
 private:
-  void getHammerstadValues(const QString& top, const QString& bottom, double& h1, double& h2, double& t);
+  void getHammerstadValues(const QString& top, const QString& bottom, double& h1, double& h2, double& t_embed);
 };
 
 #endif

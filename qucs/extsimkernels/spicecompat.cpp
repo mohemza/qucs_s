@@ -423,7 +423,7 @@ QString spicecompat::getSpiceLibPath(const QString &lib)
 int spicecompat::strToMSlineModel(const QString &model)
 {
   QStringList models;
-  models<<"Hammerstad"<<"Kirschning"<<"Wheeler"<<"Schneider"<<"Embedded Hammerstad";
+  models<<"Hammerstad"<<"Kirschning"<<"Wheeler"<<"Schneider";
   return models.indexOf(model);
 }
 
